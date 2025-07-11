@@ -38,7 +38,7 @@ RUN comfy model download --url https://github.com/TencentARC/GFPGAN/releases/dow
 
 RUN comfy model download --url https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth --relative-path models/facerestore_models --filename GFPGANv1.4.pth
 
-RUN comfy model download --url https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer-v0.1.0.pth --relative-path models/facerestore_models --filename codeformer-v0.1.0.pth
+RUN comfy model download --url https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth --relative-path models/facerestore_models --filename codeformer-v0.1.0.pth
 
 RUN comfy model download --url https://huggingface.co/harisreedhar/Face-Upscalers-ONNX/resolve/main/GPEN-BFR-512.onnx --relative-path models/facerestore_models --filename GPEN-BFR-512.onnx
 
@@ -48,8 +48,12 @@ RUN comfy model download --url https://huggingface.co/oguzm/dreamshaper-xl-light
 # Download DreamShaper XL Turbo (normal version) - backup model
 RUN comfy model download --url https://huggingface.co/oguzm/dreamshaper-xl-v21-turbo-dpmsde/resolve/main/dreamshaperXL_v21TurboDPMSDE.safetensors --relative-path models/checkpoints --filename dreamshaperXL_v21TurboDPMSDE_1.safetensors
 
+# Copy the start script and handler for RunPod serverless
+COPY src/start.sh handler.py test_input.json ./
+RUN chmod +x /start.sh
+
 # Expose ComfyUI web interface
 EXPOSE 8188
 
-# Production mode - GPU enabled
-CMD ["python", "main.py", "--listen", "0.0.0.0", "--port", "8188"] 
+# Production mode - GPU enabled with proper RunPod serverless startup
+CMD ["/start.sh"] 
