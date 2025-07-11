@@ -1,0 +1,54 @@
+# Local development version of worker-comfyui
+# This allows you to run ComfyUI locally to test workflows and see what nodes you need
+
+FROM runpod/worker-comfyui:dev
+
+# Install IPAdapter Plus (for IPAdapterModelLoader, IPAdapterAdvanced)
+RUN comfy-node-install comfyui_ipadapter_plus
+
+# Install ComfyUI Essentials (for PrepImageForClipVision and other utility nodes)
+RUN comfy-node-install comfyui_essentials
+
+# Install ETN Nodes (for ETN_NSFWFilter, ETN_LoadImageBase64)
+RUN comfy-node-install comfyui-tooling-nodes
+
+# Install g++ for building Python packages with native extensions
+RUN apt-get update && apt-get install -y g++ python3.12-dev
+
+# Install build dependencies for insightface
+RUN pip install --no-cache-dir Cython numpy
+
+# Install insightface 0.6.2 which has PickableInferenceSession (required by comfyui-reactor)
+RUN pip install --no-cache-dir insightface==0.6.2 onnxruntime-gpu==1.22.0 segment-anything==1.0
+
+# Install ReActor Face Swap node (now compatible with insightface 0.6.2)
+RUN comfy-node-install comfyui-reactor
+
+# Install ComfyUI-Gemini extension
+WORKDIR /comfyui/custom_nodes
+
+RUN git clone https://github.com/ZHO-ZHO-ZHO/ComfyUI-Gemini.git && \
+    pip install -r /comfyui/custom_nodes/ComfyUI-Gemini/requirements.txt
+
+# Change working directory to ComfyUI
+WORKDIR /comfyui
+
+RUN comfy model download --url https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth --relative-path models/facerestore_models --filename GFPGANv1.3.pth
+
+RUN comfy model download --url https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth --relative-path models/facerestore_models --filename GFPGANv1.4.pth
+
+RUN comfy model download --url https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth --relative-path models/facerestore_models --filename codeformer-v0.1.0.pth
+
+RUN comfy model download --url https://huggingface.co/martintomov/comfy/resolve/6644701b147beb68645be82ff78e4fd0eddb3927/facerestore_models/GPEN-BFR-512.onnx --relative-path models/facerestore_models --filename GPEN-BFR-512.onnx
+
+# Download DreamShaper XL Lightning (fast version) - main model for workflows
+RUN comfy model download --url https://huggingface.co/oguzm/dreamshaper-xl-lightning-dpmsde/resolve/main/dreamshaperXL_lightningDPMSDE.safetensors --relative-path models/checkpoints --filename dreamshaperXL_v21TurboDPMSDE.safetensors
+
+# Download DreamShaper XL Turbo (normal version) - backup model
+RUN comfy model download --url https://huggingface.co/oguzm/dreamshaper-xl-v21-turbo-dpmsde/resolve/main/dreamshaperXL_v21TurboDPMSDE.safetensors --relative-path models/checkpoints --filename dreamshaperXL_v21TurboDPMSDE_1.safetensors
+
+# Expose ComfyUI web interface
+EXPOSE 8188
+
+# Start ComfyUI in development mode (remove --cpu for GPU support)
+CMD ["python", "main.py", "--listen", "0.0.0.0", "--port", "8188"] 

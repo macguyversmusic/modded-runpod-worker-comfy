@@ -1,0 +1,15 @@
+services:
+  comfyui-local:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    ports:
+      - "8188:8188"
+    volumes:
+      # Mount output directory for generated images
+      - ./local-data/output:/comfyui/output
+      # Mount input directory for test images
+      - ./local-data/input:/comfyui/input
+      # Mount models directory if you want to add models locally
+      - ./local-data/models:/comfyui/models
+    restart: unless-stopped 
